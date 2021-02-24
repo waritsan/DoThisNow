@@ -9,9 +9,18 @@ import SwiftUI
 
 @main
 struct DoThisNowApp: App {
+    @ObservedObject private var data = ModelData()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            NavigationView {
+                TaskList(tasks: $data.tasks) {
+                    data.save()
+                }
+            }
+            .onAppear {
+                data.load()
+            }
         }
     }
 }
