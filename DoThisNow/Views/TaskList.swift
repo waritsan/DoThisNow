@@ -8,33 +8,41 @@
 import SwiftUI
 
 struct TaskList: View {
-    @Binding var tasks: [Task]
     @Environment(\.scenePhase) private var scenePhase
-    @State var isPresented = false
+    @State private var isPresented = false
     @State private var newTask = Task(name: "")
+    @State private var editMode = EditMode.inactive
+    @Binding var tasks: [Task]
     let saveAction: () -> Void
+    private var addButton: some View {
+        switch editMode {
+        case .inactive:
+            return AnyView(Button(action: { isPresented = true }, label: {
+                Image(systemName: "plus")
+            }))
+        default:
+            return AnyView(EmptyView())
+        }
+    }
     
     var body: some View {
         List {
-            Button(action: {
-                var tempTasks = tasks
-                let firstTask = tempTasks.removeFirst()
-                tempTasks.append(firstTask)
-                tasks = tempTasks
-                print(tasks)
-            }, label: {
+            Button(action: start, label: {
                 Text("Start")
             })
             ForEach(tasks) { task in
                 Text(task.name)
             }
+            .onDelete(perform: { indexSet in
+                tasks.remove(atOffsets: indexSet)
+            })
+            .onMove(perform: { indices, newOffset in
+                tasks.move(fromOffsets: indices, toOffset: newOffset)
+            })
         }
         .navigationTitle("Tasks")
-        .navigationBarItems(trailing: Button(action: {
-            isPresented = true
-        }, label: {
-            Image(systemName: "plus")
-        }))
+        .navigationBarItems(leading: EditButton(), trailing: addButton)
+        .environment(\.editMode, $editMode)
         .sheet(isPresented: $isPresented, content: {
             NavigationView {
                 EditTask(task: $newTask)
@@ -49,6 +57,13 @@ struct TaskList: View {
         .onChange(of: scenePhase) { (phase) in
             if phase == .inactive { saveAction() }
         }
+    }
+    
+    private func start() {
+        var tempTasks = tasks
+        let firstTask = tempTasks.removeFirst()
+        tempTasks.append(firstTask)
+        tasks = tempTasks
     }
 }
 
